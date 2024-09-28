@@ -1,44 +1,48 @@
+# Defining networks for services to communicate
 networks:
   jenkins:
-    driver: bridge
+    driver: bridge # Creating isolated network using bridge driver for communication between services
 
+# Defining volumes to persist data and share certificates
 volumes:
-  jenkins-data:
-  docker-certs-ca:
-  docker-certs-client:
+  jenkins-data:         # Storing Jenkins data (like configurations, job history)
+  docker-certs-ca:      # Storing Docker CA certificates to enable secure Docker communication
+  docker-certs-client:  # Storing Docker client certificates for securing communication with Docker daemon
 
 services:
+  # Jenkins Service Configuration
   jenkins:
-    image: jenkins/jenkins:lts
-    container_name: jenkins
-    restart: unless-stopped
+    image: jenkins/jenkins:lts  # Uses latest stable Jenkins image from Docker Hub
+    container_name: jenkins     # Setting container name for easier identification
+    restart: unless-stopped     # Automatically restarts Jenkins unless manually stopped
     networks:
-      - jenkins
+      - jenkins                # Attaches Jenkins service to jenkins network
     environment:
-      DOCKER_HOST: "tcp://docker:2376"
-      DOCKER_CERT_PATH: /certs/client
-      DOCKER_TLS_VERIFY: 1
+      DOCKER_HOST: "tcp://docker:2376"  # This is docker host configuration, points to Docker-in-Docker container
+      DOCKER_CERT_PATH: /certs/client   # This is path to Docker client certificates for TLS verification
+      DOCKER_TLS_VERIFY: 1              # Enabling TLS verification to ensure secure Docker communication
     volumes:
-      - docker-certs-client:/certs/client:ro
-      - jenkins-data:/var/jenkins_home
-      - /usr/bin/docker:/usr/bin/docker
+      - docker-certs-client:/certs/client:ro  # Mounting client certificates in read-only mode
+      - jenkins-data:/var/jenkins_home        # Persisting Jenkins data in jenkins-data volume
+      - /usr/bin/docker:/usr/bin/docker       # Maping Docker binary to allow Jenkins to run Docker commands
     ports:
-      - "8080:8080"
-      - "50000:50000"
+      - "8080:8080"          #  port 8080 for Jenkins web UI
+      - "50000:50000"        #  port 50000 for Jenkins agent communication
 
+  # Docker-in-Docker (dind) Service Configuration
   dind:
-    image: docker:20.10-dind
-    container_name: dind
-    privileged: true
+    image: docker:20.10-dind   # Using Docker-in-Docker (dind) image to allow Docker commands inside Jenkins
+    container_name: dind       # Setting container name for Docker-in-Docker
+    privileged: true           # Allowing container to perform Docker operations with elevated permissions
     networks:
-      jenkins:
+      jenkins:                 # Attaching dind service to'jenkins' network
         aliases:
-          - docker
+          - docker             # Setting alias 'docker' for easier reference within network
     environment:
-      DOCKER_TLS_CERTDIR: "/certs"
+      DOCKER_TLS_CERTDIR: "/certs"  # Setting directory for Docker TLS certificates
     volumes:
-      - docker-certs-ca:/certs/ca
-      - docker-certs-client:/certs/client
-      - jenkins-data:/var/jenkins_home
+      - docker-certs-ca:/certs/ca     # Mounting CA certificates to ensure secure Docker communication
+      - docker-certs-client:/certs/client  # Mounting client certificates for secure communication with Jenkins
+      - jenkins-data:/var/jenkins_home     # Sharing Jenkins data volume for potential access by both services
     ports:
-      - "2376:2376"
+      - "2376:2376"            # port 2376 for secure Docker Communication
