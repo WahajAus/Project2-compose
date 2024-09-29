@@ -16,7 +16,7 @@ services:
     container_name: jenkins     # Setting container name for easier identification
     restart: unless-stopped     # Automatically restarts Jenkins unless manually stopped
     networks:
-      - jenkins                # Attaches Jenkins service to jenkins network
+      - jenkins                # Attaches Jenkins service to jenkin network
     environment:
       DOCKER_HOST: "tcp://docker:2376"  # This is docker host configuration, points to Docker-in-Docker container
       DOCKER_CERT_PATH: /certs/client   # This is path to Docker client certificates for TLS verification
